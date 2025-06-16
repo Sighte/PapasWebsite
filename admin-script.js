@@ -384,6 +384,9 @@ class AdminPanel {
                             <i class="fas fa-times"></i> Ablehnen
                         </button>
                     ` : ''}
+                    <button class="btn btn-danger" onclick="adminPanel.deleteRequest('${request.id}')" style="background-color: #dc3545;">
+                        <i class="fas fa-trash"></i> Löschen
+                    </button>
                 </div>
             </div>
         `).join('');
@@ -522,6 +525,66 @@ class AdminPanel {
         this.currentRequestId = null;
     }
 
+    async deleteRequest(requestId) {
+        console.log('deleteRequest called with ID:', requestId);
+        console.log('currentRequestId:', this.currentRequestId);
+        
+        // Use current request ID if not provided (for modal delete button)
+        const idToDelete = requestId || this.currentRequestId;
+        
+        console.log('ID to delete:', idToDelete);
+        
+        if (!idToDelete) {
+            this.showMessage('Keine Anfrage zum Löschen ausgewählt', 'error');
+            return;
+        }
+
+        // Find the request to show details in confirmation
+        const request = this.allRequests.find(r => r.id === idToDelete);
+        const requestInfo = request ? `"${request.productTitle}" von ${request.customerName}` : 'diese Anfrage';
+
+        console.log('Request to delete:', request);
+
+        if (!confirm(`Sind Sie sicher, dass Sie ${requestInfo} komplett löschen möchten?\n\nDiese Aktion kann nicht rückgängig gemacht werden!`)) {
+            return;
+        }
+
+        try {
+            console.log('Sending DELETE request to:', `${this.apiUrl}/rental-requests/${idToDelete}`);
+            
+            const response = await fetch(`${this.apiUrl}/rental-requests/${idToDelete}`, {
+                method: 'DELETE'
+            });
+
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Server error response:', errorText);
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('Delete result:', result);
+
+            // Remove from local data
+            this.allRequests = this.allRequests.filter(r => r.id !== idToDelete);
+            
+            // Refresh display
+            this.displayRequests(this.allRequests);
+            this.showMessage('Anfrage wurde erfolgreich gelöscht', 'success');
+            
+            // Close modal if it was open
+            if (document.getElementById('requestModal').style.display === 'block') {
+                this.closeRequestModal();
+            }
+        } catch (error) {
+            console.error('Error deleting request:', error);
+            this.showMessage(`Fehler beim Löschen der Anfrage: ${error.message}`, 'error');
+        }
+    }
+
     // Section Management
     showSection(sectionName) {
         // Hide all sections
@@ -561,6 +624,10 @@ function updateRequestStatus(status) {
     if (adminPanel.currentRequestId) {
         adminPanel.updateRequestStatus(adminPanel.currentRequestId, status, adminNote);
     }
+}
+
+function deleteRequest() {
+    adminPanel.deleteRequest();
 }
 
 function showSection(sectionName) {

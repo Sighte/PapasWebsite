@@ -465,6 +465,66 @@ app.put('/api/rental-requests/:id', async (req, res) => {
     }
 });
 
+// Delete rental request (admin only)
+app.delete('/api/rental-requests/:id', async (req, res) => {
+    try {
+        console.log('DELETE request received for ID:', req.params.id);
+        
+        const requests = await readRentalRequests();
+        console.log('Total requests found:', requests.length);
+        
+        const requestIndex = requests.findIndex(r => r.id === req.params.id);
+        console.log('Request index:', requestIndex);
+        
+        if (requestIndex === -1) {
+            console.log('Request not found with ID:', req.params.id);
+            return res.status(404).json({ error: 'Anfrage nicht gefunden' });
+        }
+
+        const deletedRequest = requests[requestIndex];
+        console.log('Request to delete:', deletedRequest.productTitle, 'by', deletedRequest.customerName);
+        
+        requests.splice(requestIndex, 1);
+        console.log('Remaining requests after deletion:', requests.length);
+        
+        const success = await writeRentalRequests(requests);
+        console.log('Write success:', success);
+        
+        if (success) {
+            // If the request was approved, also remove from confirmed rentals
+            if (deletedRequest.status === 'approved') {
+                try {
+                    console.log('Removing from confirmed rentals...');
+                    const confirmedRentals = await readConfirmedRentals();
+                    const updatedConfirmedRentals = confirmedRentals.filter(rental => rental.requestId !== req.params.id);
+                    await writeConfirmedRentals(updatedConfirmedRentals);
+                    console.log('Confirmed rentals updated');
+                } catch (error) {
+                    console.error('Error removing from confirmed rentals:', error);
+                    // Continue even if this fails
+                }
+            }
+            
+            console.log('Sending success response');
+            res.json({ 
+                success: true, 
+                message: 'Anfrage erfolgreich gelöscht',
+                deletedRequest: {
+                    id: deletedRequest.id,
+                    productTitle: deletedRequest.productTitle,
+                    customerName: deletedRequest.customerName
+                }
+            });
+        } else {
+            console.log('Failed to write requests file');
+            res.status(500).json({ error: 'Fehler beim Löschen der Anfrage' });
+        }
+    } catch (error) {
+        console.error('Error deleting rental request:', error);
+        res.status(500).json({ error: 'Interner Serverfehler' });
+    }
+});
+
 // Get confirmed rentals (public endpoint for calendar blocking)
 app.get('/mietdaten.json', async (req, res) => {
     try {

@@ -206,15 +206,20 @@
                 <textarea id="adminNote" rows="3" placeholder="Grund für Ablehnung oder zusätzliche Informationen..."></textarea>
             </div>
             <div class="modal-actions">
-                <button type="button" class="btn-success" onclick="updateRequestStatus('approved')">
-                    <i class="fas fa-check"></i> Genehmigen
+                <button type="button" class="btn-danger" onclick="deleteRequest()" style="background-color: #dc3545;">
+                    <i class="fas fa-trash"></i> Löschen
                 </button>
-                <button type="button" class="btn-danger" onclick="updateRequestStatus('rejected')">
-                    <i class="fas fa-times"></i> Ablehnen
-                </button>
-                <button type="button" class="btn-secondary" onclick="closeRequestModal()">
-                    Schließen
-                </button>
+                <div>
+                    <button type="button" class="btn-success" onclick="updateRequestStatus('approved')">
+                        <i class="fas fa-check"></i> Genehmigen
+                    </button>
+                    <button type="button" class="btn-danger" onclick="updateRequestStatus('rejected')">
+                        <i class="fas fa-times"></i> Ablehnen
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="closeRequestModal()">
+                        Schließen
+                    </button>
+                </div>
             </div>
         </div>
     </div>
