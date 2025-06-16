@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Mietservice Trapp</title>
+    <link rel="stylesheet" href="admin-styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1><i class="fas fa-cog"></i> Admin Panel - Mietservice Trapp</h1>
+            <nav class="admin-nav">
+                <button class="nav-btn active" onclick="showSection('articles')"><i class="fas fa-box"></i> Artikel</button>
+                <button class="nav-btn" onclick="showSection('requests')"><i class="fas fa-calendar-check"></i> Anfragen</button>
+                <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Zur Website</a>
+            </nav>
+        </header>
+
+        <main class="admin-main">
+            <!-- Articles Section -->
+            <div id="articles-section" class="section">
+                <!-- Add Article Form -->
+                <section class="admin-section">
+                <h2><i class="fas fa-plus"></i> Neuen Artikel hinzufügen</h2>
+                <form id="articleForm" class="article-form">
+                    <div class="form-group">
+                        <label for="title">Titel *</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">Kategorie *</label>
+                        <select id="category" name="category" required>
+                            <option value="">Kategorie wählen</option>
+                            <option value="anhaenger">Anhänger</option>
+                            <option value="party-events">Party & Events</option>
+                            <option value="bauarbeiten">Bauarbeiten</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Beschreibung *</label>
+                        <textarea id="description" name="description" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="price">Preis pro Tag (€) *</label>
+                        <input type="number" id="price" name="price" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="imageUrl">Bild-URL</label>
+                        <input type="url" id="imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="features">Eigenschaften (eine pro Zeile)</label>
+                        <textarea id="features" name="features" rows="3" placeholder="Eigenschaft 1&#10;Eigenschaft 2&#10;Eigenschaft 3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="available" name="available" checked>
+                            Verfügbar
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Artikel speichern
+                    </button>
+                </form>
+            </section>
+
+            <!-- Articles List -->
+            <section class="admin-section">
+                <h2><i class="fas fa-list"></i> Gespeicherte Artikel</h2>
+                <div class="articles-controls">
+                    <button id="refreshBtn" class="btn-secondary">
+                        <i class="fas fa-refresh"></i> Aktualisieren
+                    </button>
+                    <div class="filter-controls">
+                        <select id="categoryFilter">
+                            <option value="">Alle Kategorien</option>
+                            <option value="anhaenger">Anhänger</option>
+                            <option value="party-events">Party & Events</option>
+                            <option value="bauarbeiten">Bauarbeiten</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="articlesList" class="articles-list">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Lade Artikel...
+                    </div>
+                </div>
+            </section>
+            </div>
+
+            <!-- Requests Section -->
+            <div id="requests-section" class="section" style="display: none;">
+                <section class="admin-section">
+                    <h2><i class="fas fa-calendar-check"></i> Mietanfragen verwalten</h2>
+                    <div class="section-controls">
+                        <button id="refreshRequestsBtn" class="btn-secondary">
+                            <i class="fas fa-refresh"></i> Aktualisieren
+                        </button>
+                        <div class="filter-controls">
+                            <select id="statusFilter">
+                                <option value="">Alle Status</option>
+                                <option value="pending">Ausstehend</option>
+                                <option value="approved">Genehmigt</option>
+                                <option value="rejected">Abgelehnt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="requestsList" class="requests-list">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Lade Anfragen...
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="message-container"></div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Artikel bearbeiten</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="editForm" class="article-form">
+                <input type="hidden" id="editId" name="id">
+                
+                <div class="form-group">
+                    <label for="editTitle">Titel *</label>
+                    <input type="text" id="editTitle" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editCategory">Kategorie *</label>
+                    <select id="editCategory" name="category" required>
+                        <option value="">Kategorie wählen</option>
+                        <option value="anhaenger">Anhänger</option>
+                        <option value="party-events">Party & Events</option>
+                        <option value="bauarbeiten">Bauarbeiten</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="editDescription">Beschreibung *</label>
+                    <textarea id="editDescription" name="description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editPrice">Preis pro Tag (€) *</label>
+                    <input type="number" id="editPrice" name="price" min="0" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="editImageUrl">Bild-URL</label>
+                    <input type="url" id="editImageUrl" name="imageUrl">
+                </div>
+
+                <div class="form-group">
+                    <label for="editFeatures">Eigenschaften (eine pro Zeile)</label>
+                    <textarea id="editFeatures" name="features" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editAvailable" name="available">
+                        Verfügbar
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Änderungen speichern
+                    </button>
+                    <button type="button" class="btn-secondary" onclick="closeEditModal()">
+                        Abbrechen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div id="requestModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Anfrage bearbeiten</h3>
+                <span class="close" onclick="closeRequestModal()">&times;</span>
+            </div>
+            <div id="requestDetails" class="request-details">
+                <!-- Request details will be loaded here -->
+            </div>
+            <div class="admin-note-section">
+                <label for="adminNote">Admin-Notiz (optional):</label>
+                <textarea id="adminNote" rows="3" placeholder="Grund für Ablehnung oder zusätzliche Informationen..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-success" onclick="updateRequestStatus('approved')">
+                    <i class="fas fa-check"></i> Genehmigen
+                </button>
+                <button type="button" class="btn-danger" onclick="updateRequestStatus('rejected')">
+                    <i class="fas fa-times"></i> Ablehnen
+                </button>
+                <button type="button" class="btn-secondary" onclick="closeRequestModal()">
+                    Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-script.js"></script>
+</body>
+</html>

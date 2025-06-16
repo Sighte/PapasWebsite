@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1f9cd329-1eeb-49d4-ab73-fa6a139639c5",
+    "requestId": "7f2ffba2-4e82-4636-ba78-b765a99c5ded",
+    "productId": "test-1",
+    "productTitle": "Kleiner Anhänger 750kg",
+    "startDate": "2025-06-18",
+    "endDate": "2025-06-27",
+    "customerName": "test",
+    "customerEmail": "test@sad",
+    "totalPrice": 225,
+    "status": "confirmed",
+    "createdAt": "2025-06-16T12:15:07.573Z"
+  }
+]

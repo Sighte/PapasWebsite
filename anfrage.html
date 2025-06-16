@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mietanfrage - Mietservice Trapp</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .anfrage-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #007bff;
+        }
+
+        .calendar-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .date-picker {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .date-picker label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .date-picker input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+
+
+        .blocked-dates {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .blocked-dates h4 {
+            color: #856404;
+            margin-top: 0;
+        }
+
+        .blocked-date-item {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .price-info {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .price-calculation {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+        }
+
+        .total-price {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .submit-btn {
+            background: #007bff;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #0056b3;
+        }
+
+        .submit-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        @media (max-width: 768px) {
+            .calendar-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .anfrage-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="nav-container">
+                <div class="logo">
+                    <h1>Mietservice Trapp</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="anhaenger.html">Anhänger</a></li>
+                    <li><a href="bauarbeiten.html">Bauarbeiten</a></li>
+                    <li><a href="party-events.html">Party & Events</a></li>
+                    <li><a href="kontakt.html">Kontakt</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="anfrage-container">
+            <h1>Mietanfrage</h1>
+            
+            <div class="product-info" id="productInfo">
+                <h3>Produkt wird geladen...</h3>
+            </div>
+
+            <div class="blocked-dates" id="blockedDates" style="display: none;">
+                <h4>⚠️ Bereits gebuchte Zeiträume</h4>
+                <div id="blockedDatesList"></div>
+            </div>
+
+            <form id="anfrageForm">
+                <div class="calendar-container">
+                    <div class="date-picker">
+                        <label for="startDate">Mietbeginn:</label>
+                        <input type="date" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="date-picker">
+                        <label for="endDate">Mietende:</label>
+                        <input type="date" id="endDate" name="endDate" required>
+                    </div>
+                </div>
+
+                <div class="price-info" id="priceInfo" style="display: none;">
+                    <h4>Preisberechnung</h4>
+                    <div class="price-calculation">
+                        <span>Anzahl Tage:</span>
+                        <span id="dayCount">0</span>
+                    </div>
+                    <div class="price-calculation">
+                        <span>Preis pro Tag:</span>
+                        <span id="dailyPrice">0,00 €</span>
+                    </div>
+                    <div class="price-calculation total-price">
+                        <span>Gesamtpreis:</span>
+                        <span id="totalPrice">0,00 €</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerName">Ihr Name:</label>
+                    <input type="text" id="customerName" name="customerName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerEmail">Ihre E-Mail:</label>
+                    <input type="email" id="customerEmail" name="customerEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerPhone">Ihre Telefonnummer:</label>
+                    <input type="tel" id="customerPhone" name="customerPhone">
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Zusätzliche Nachricht (optional):</label>
+                    <textarea id="message" name="message" placeholder="Besondere Wünsche oder Anmerkungen..."></textarea>
+                </div>
+
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="successMessage" class="success-message" style="display: none;"></div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    Anfrage senden
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Kontakt</h3>
+                <p>📧 vermietung@simon-trapp.de</p>
+                <p>📱 Telefon auf Anfrage</p>
+            </div>
+            <div class="footer-section">
+                <h3>Service</h3>
+                <p>Zuverlässige Vermietung</p>
+                <p>Faire Preise</p>
+                <p>Schnelle Abwicklung</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 Mietservice Trapp. Alle Rechte vorbehalten.</p>
+        </div>
+    </footer>
+
+    <script src="anfrage.js"></script>
+</body>
+</html>

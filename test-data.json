@@ -1,0 +1,38 @@
+[
+  {
+    "id": "test-1",
+    "title": "Kleiner Anhänger 750kg",
+    "category": "anhaenger",
+    "description": "Perfekt für kleinere Transporte. Zulässiges Gesamtgewicht 750kg.",
+    "price": 25,
+    "imageUrl": "https://via.placeholder.com/300x200?text=Anhänger+750kg",
+    "features": ["750kg Zuladung", "Plane inklusive", "Bordwände"],
+    "available": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "test-2",
+    "title": "Großer Anhänger 1300kg",
+    "category": "anhaenger",
+    "description": "Für größere Transporte geeignet. Zulässiges Gesamtgewicht 1300kg.",
+    "price": 35,
+    "imageUrl": "https://via.placeholder.com/300x200?text=Anhänger+1300kg",
+    "features": ["1300kg Zuladung", "Plane inklusive", "Hochbordwände", "Stützrad"],
+    "available": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  },
+  {
+    "id": "test-3",
+    "title": "Partyzelt 3x6m",
+    "category": "party-events",
+    "description": "Wetterfestes Partyzelt für bis zu 30 Personen.",
+    "price": 45,
+    "imageUrl": "https://via.placeholder.com/300x200?text=Partyzelt+3x6m",
+    "features": ["3x6 Meter", "Wasserdicht", "Seitenwände optional", "Für 30 Personen"],
+    "available": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "updatedAt": "2024-01-15T10:00:00.000Z"
+  }
+]
