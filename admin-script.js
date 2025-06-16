@@ -40,6 +40,11 @@ class AdminPanel {
             this.loadRentalRequests();
         });
 
+        // Cleanup rentals button
+        document.getElementById('cleanupRentalsBtn').addEventListener('click', () => {
+            this.cleanupRentals();
+        });
+
         // Status filter
         document.getElementById('statusFilter').addEventListener('change', (e) => {
             this.filterRequests(e.target.value);
@@ -582,6 +587,49 @@ class AdminPanel {
         } catch (error) {
             console.error('Error deleting request:', error);
             this.showMessage(`Fehler beim Löschen der Anfrage: ${error.message}`, 'error');
+        }
+    }
+
+    // Cleanup rentals function
+    async cleanupRentals() {
+        if (!confirm('Möchten Sie die Mietdaten bereinigen?\n\nDies entfernt Duplikate und verwaiste Einträge aus den bestätigten Buchungen. Diese Aktion kann nicht rückgängig gemacht werden.')) {
+            return;
+        }
+
+        try {
+            const cleanupBtn = document.getElementById('cleanupRentalsBtn');
+            const originalText = cleanupBtn.innerHTML;
+            cleanupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Bereinige...';
+            cleanupBtn.disabled = true;
+
+            const response = await fetch(`${this.apiUrl}/cleanup-rentals`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to cleanup rentals');
+            }
+
+            const result = await response.json();
+            
+            this.showMessage(
+                `Mietdaten erfolgreich bereinigt!\n\nUrsprünglich: ${result.details.original} Einträge\nBereinigt: ${result.details.cleaned} Einträge\nEntfernt: ${result.details.removed} Duplikate/verwaiste Einträge`, 
+                'success'
+            );
+            
+            // Refresh the requests list to show updated data
+            this.loadRentalRequests();
+            
+        } catch (error) {
+            console.error('Error cleaning up rentals:', error);
+            this.showMessage('Fehler beim Bereinigen der Mietdaten: ' + error.message, 'error');
+        } finally {
+            const cleanupBtn = document.getElementById('cleanupRentalsBtn');
+            cleanupBtn.innerHTML = '<i class="fas fa-broom"></i> Mietdaten bereinigen';
+            cleanupBtn.disabled = false;
         }
     }
 

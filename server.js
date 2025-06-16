@@ -491,18 +491,21 @@ app.delete('/api/rental-requests/:id', async (req, res) => {
         console.log('Write success:', success);
         
         if (success) {
-            // If the request was approved, also remove from confirmed rentals
-            if (deletedRequest.status === 'approved') {
-                try {
-                    console.log('Removing from confirmed rentals...');
-                    const confirmedRentals = await readConfirmedRentals();
-                    const updatedConfirmedRentals = confirmedRentals.filter(rental => rental.requestId !== req.params.id);
-                    await writeConfirmedRentals(updatedConfirmedRentals);
-                    console.log('Confirmed rentals updated');
-                } catch (error) {
-                    console.error('Error removing from confirmed rentals:', error);
-                    // Continue even if this fails
-                }
+            // Always try to remove from confirmed rentals, regardless of status
+            // This ensures that any confirmed rental with this requestId is removed
+            try {
+                console.log('Removing from confirmed rentals...');
+                const confirmedRentals = await readConfirmedRentals();
+                console.log('Confirmed rentals before filtering:', confirmedRentals.length);
+                
+                const updatedConfirmedRentals = confirmedRentals.filter(rental => rental.requestId !== req.params.id);
+                console.log('Confirmed rentals after filtering:', updatedConfirmedRentals.length);
+                
+                await writeConfirmedRentals(updatedConfirmedRentals);
+                console.log('Confirmed rentals updated successfully');
+            } catch (error) {
+                console.error('Error removing from confirmed rentals:', error);
+                // Continue even if this fails
             }
             
             console.log('Sending success response');
@@ -532,6 +535,74 @@ app.get('/mietdaten.json', async (req, res) => {
         res.json(confirmedRentals);
     } catch (error) {
         res.status(500).json({ error: 'Fehler beim Laden der Mietdaten' });
+    }
+});
+
+// Helper function to clean up duplicates and orphaned entries
+async function cleanupConfirmedRentals() {
+    try {
+        console.log('Starting cleanup process...');
+        const confirmedRentals = await readConfirmedRentals();
+        console.log('Loaded confirmed rentals:', confirmedRentals.length);
+        
+        // Create a Map to track unique entries and only keep the most recent ones
+        const uniqueRentals = new Map();
+        
+        // Process each rental to find duplicates
+        confirmedRentals.forEach(rental => {
+            // Create a unique key based on important fields
+            const key = `${rental.productId}-${rental.startDate}-${rental.endDate}-${rental.customerEmail}`;
+            console.log('Processing rental with key:', key);
+            
+            // Check if we already have this rental
+            if (uniqueRentals.has(key)) {
+                // Keep the one with the latest createdAt date
+                const existing = uniqueRentals.get(key);
+                console.log('Found duplicate, comparing dates:', rental.createdAt, 'vs', existing.createdAt);
+                if (new Date(rental.createdAt) > new Date(existing.createdAt)) {
+                    console.log('Keeping newer rental');
+                    uniqueRentals.set(key, rental);
+                } else {
+                    console.log('Keeping existing rental');
+                }
+            } else {
+                console.log('New unique rental found');
+                uniqueRentals.set(key, rental);
+            }
+        });
+
+        // Get the final cleaned list
+        const finalCleanedRentals = Array.from(uniqueRentals.values());
+        
+        console.log(`Cleaned up confirmed rentals: ${confirmedRentals.length} -> ${finalCleanedRentals.length}`);
+        
+        // Save the cleaned data
+        await writeConfirmedRentals(finalCleanedRentals);
+        
+        return {
+            original: confirmedRentals.length,
+            cleaned: finalCleanedRentals.length,
+            removed: confirmedRentals.length - finalCleanedRentals.length
+        };
+    } catch (error) {
+        console.error('Error cleaning up confirmed rentals:', error);
+        console.error('Error stack:', error.stack);
+        throw error;
+    }
+}
+
+// API endpoint to manually clean up confirmed rentals (admin only)
+app.post('/api/cleanup-rentals', async (req, res) => {
+    try {
+        const result = await cleanupConfirmedRentals();
+        res.json({
+            success: true,
+            message: 'Confirmed rentals cleaned up successfully',
+            details: result
+        });
+    } catch (error) {
+        console.error('Error during cleanup:', error);
+        res.status(500).json({ error: 'Fehler beim Bereinigen der Mietdaten' });
     }
 });
 
