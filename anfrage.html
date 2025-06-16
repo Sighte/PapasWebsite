@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mietanfrage - Mietservice Trapp</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS für schönen Kalender -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
     <style>
         .anfrage-container {
             max-width: 800px;
@@ -26,30 +30,223 @@
         .calendar-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin: 2rem 0;
+            gap: 3rem;
+            margin: 3rem 0;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .date-picker {
-            background: white;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            padding: 1rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 3px solid #007bff;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .date-picker::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #0056b3, #007bff);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .date-picker:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 123, 255, 0.25);
+            border-color: #0056b3;
         }
 
         .date-picker label {
             display: block;
             font-weight: bold;
-            margin-bottom: 0.5rem;
-            color: #333;
+            margin-bottom: 1rem;
+            color: #007bff;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+        }
+
+        .date-picker label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 30px;
+            height: 3px;
+            background: #007bff;
+            border-radius: 2px;
         }
 
         .date-picker input {
             width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 1rem;
+            padding: 1.2rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            background: white;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .date-picker input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+            transform: scale(1.02);
+        }
+
+        .date-picker input:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Styling für den nativen Kalender-Picker */
+        .date-picker input[type="date"]::-webkit-calendar-picker-indicator {
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="%23007bff"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>') no-repeat center;
+            background-size: 20px 20px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .date-picker input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Flatpickr Custom Styling */
+        .flatpickr-calendar {
+            background: white;
+            border-radius: 15px !important;
+            box-shadow: 0 15px 50px rgba(0, 123, 255, 0.3) !important;
+            border: 3px solid #007bff !important;
+            font-size: 16px !important;
+            min-width: 350px !important;
+        }
+
+        .flatpickr-calendar.open {
+            z-index: 9999 !important;
+        }
+
+        .flatpickr-months {
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 15px !important;
+        }
+
+        .flatpickr-month {
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 18px !important;
+        }
+
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
+            color: white !important;
+            font-size: 20px !important;
+            padding: 10px !important;
+        }
+
+        .flatpickr-prev-month:hover,
+        .flatpickr-next-month:hover {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-radius: 50% !important;
+        }
+
+        .flatpickr-weekdays {
+            background: #f8f9fa !important;
+            padding: 10px 0 !important;
+        }
+
+        .flatpickr-weekday {
+            color: #007bff !important;
+            font-weight: bold !important;
+            font-size: 14px !important;
+            padding: 8px !important;
+        }
+
+        .flatpickr-days {
+            padding: 10px !important;
+        }
+
+        .flatpickr-day {
+            width: 45px !important;
+            height: 45px !important;
+            line-height: 45px !important;
+            margin: 2px !important;
+            font-size: 16px !important;
+            border-radius: 8px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .flatpickr-day:hover {
+            background: #e3f2fd !important;
+            color: #007bff !important;
+            transform: scale(1.1) !important;
+        }
+
+        .flatpickr-day.selected {
+            background: #007bff !important;
+            color: white !important;
+            font-weight: bold !important;
+            transform: scale(1.1) !important;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4) !important;
+        }
+
+        .flatpickr-day.today {
+            border: 2px solid #007bff !important;
+            color: #007bff !important;
+            font-weight: bold !important;
+        }
+
+        .flatpickr-day.today.selected {
+            border: 2px solid white !important;
+        }
+
+        .flatpickr-day.disabled {
+            color: #ccc !important;
+            background: #f5f5f5 !important;
+        }
+
+        .flatpickr-day.inRange {
+            background: rgba(0, 123, 255, 0.1) !important;
+            color: #007bff !important;
+        }
+
+        .flatpickr-day.startRange,
+        .flatpickr-day.endRange {
+            background: #007bff !important;
+            color: white !important;
+        }
+
+        /* Responsive Kalender */
+        @media (max-width: 480px) {
+            .flatpickr-calendar {
+                min-width: 300px !important;
+                font-size: 14px !important;
+            }
+            
+            .flatpickr-day {
+                width: 35px !important;
+                height: 35px !important;
+                line-height: 35px !important;
+                font-size: 14px !important;
+            }
         }
 
 
@@ -163,7 +360,21 @@
         @media (max-width: 768px) {
             .calendar-container {
                 grid-template-columns: 1fr;
-                gap: 1rem;
+                gap: 2rem;
+                margin: 2rem 0;
+            }
+            
+            .date-picker {
+                padding: 1.5rem;
+            }
+            
+            .date-picker label {
+                font-size: 1.1rem;
+            }
+            
+            .date-picker input {
+                padding: 1rem;
+                font-size: 1rem;
             }
             
             .anfrage-container {
@@ -171,25 +382,63 @@
                 padding: 1rem;
             }
         }
+
+        @media (max-width: 480px) {
+            .calendar-container {
+                gap: 1.5rem;
+                margin: 1.5rem 0;
+            }
+            
+            .date-picker {
+                padding: 1.2rem;
+            }
+            
+            .date-picker label {
+                font-size: 1rem;
+                margin-bottom: 0.8rem;
+            }
+            
+            .date-picker input {
+                padding: 0.9rem;
+                font-size: 0.95rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="nav-container">
-                <div class="logo">
-                    <h1>Mietservice Trapp</h1>
-                </div>
-                <ul class="nav-menu">
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="anhaenger.html">Anhänger</a></li>
-                    <li><a href="bauarbeiten.html">Bauarbeiten</a></li>
-                    <li><a href="party-events.html">Party & Events</a></li>
-                    <li><a href="kontakt.html">Kontakt</a></li>
-                </ul>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2><i class="fas fa-handshake"></i> Mietservice Trapp</h2>
             </div>
-        </nav>
-    </header>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        <span>Home</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="kontakt.html" class="nav-link">
+                        <i class="fas fa-envelope"></i>
+                        <span>Kontakt</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="anfrage.html" class="nav-link active">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Anfrage</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
 
     <main>
         <div class="anfrage-container">
@@ -262,25 +511,49 @@
         </div>
     </main>
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>Kontakt</h3>
-                <p>📧 vermietung@simon-trapp.de</p>
-                <p>📱 Telefon auf Anfrage</p>
+    <!-- Footer -->
+    <footer id="contact" class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3><i class="fas fa-handshake"></i> Mietservice Trapp</h3>
+                    <p>Ihr lokaler Mietservice in Gronau. Mieten statt kaufen - nachhaltig, günstig und praktisch.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Kontakt</h4>
+                    <div class="contact-info">
+                        <p><i class="fas fa-envelope"></i> vermietung@simon-trapp.de</p>
+                        <p><i class="fas fa-phone"></i> 0171-6537001</p>
+                        <p><i class="fas fa-map-marker-alt"></i> Wittekindstr. 10, 48599 Gronau</p>
+                        <p><i class="fas fa-user"></i> Inhaber: Simon Trapp</p>
+                    </div>
+                </div>
             </div>
-            <div class="footer-section">
-                <h3>Service</h3>
-                <p>Zuverlässige Vermietung</p>
-                <p>Faire Preise</p>
-                <p>Schnelle Abwicklung</p>
+            
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p>&copy; 2024 Mietservice Trapp. Alle Rechte vorbehalten.</p>
+                    <div class="footer-links">
+                        <a href="datenschutz.html">Datenschutz</a>
+                        <a href="agb.html">AGB</a>
+                        <a href="impressum.html">Impressum</a>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 Mietservice Trapp. Alle Rechte vorbehalten.</p>
         </div>
     </footer>
 
+    <!-- Flatpickr JavaScript für schönen Kalender -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
+    <script src="script.js"></script>
     <script src="anfrage.js"></script>
 </body>
 </html>

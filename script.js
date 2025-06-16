@@ -31,43 +31,21 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
     if (window.scrollY > 50) {
-        navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-        navbar.style.backdropFilter = 'blur(10px)';
+        navbar.classList.add('scrolled');
     } else {
-        navbar.style.background = '#fff';
-        navbar.style.backdropFilter = 'none';
+        navbar.classList.remove('scrolled');
     }
 });
 
-// Search functionality
-const searchBtn = document.querySelector('.search-btn');
-const searchInput = document.querySelector('.search-input');
-const locationInput = document.querySelector('.location-input');
-
-searchBtn.addEventListener('click', () => {
-    const searchTerm = searchInput.value.trim();
-    const location = locationInput.value.trim();
+// Enhanced navigation interactions
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('mouseenter', () => {
+        link.style.transform = 'translateY(-2px) scale(1.05)';
+    });
     
-    if (searchTerm) {
-        // Here you would typically send the search to your backend
-        console.log(`Searching for: ${searchTerm} in ${location || 'all locations'}`);
-        alert(`Suche nach "${searchTerm}" ${location ? `in ${location}` : 'in allen Orten'}`);
-    } else {
-        alert('Bitte geben Sie einen Suchbegriff ein.');
-    }
-});
-
-// Enter key support for search
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        searchBtn.click();
-    }
-});
-
-locationInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        searchBtn.click();
-    }
+    link.addEventListener('mouseleave', () => {
+        link.style.transform = 'translateY(0) scale(1)';
+    });
 });
 
 // Category card click handlers
@@ -75,7 +53,6 @@ document.querySelectorAll('.category-card').forEach(card => {
     card.addEventListener('click', () => {
         const categoryName = card.querySelector('h3').textContent;
         console.log(`Category clicked: ${categoryName}`);
-        alert(`Kategorie "${categoryName}" ausgewählt`);
     });
 });
 

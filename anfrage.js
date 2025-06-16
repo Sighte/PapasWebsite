@@ -3,6 +3,8 @@ class AnfrageManager {
         this.productId = null;
         this.product = null;
         this.blockedDates = [];
+        this.startDatePicker = null;
+        this.endDatePicker = null;
         this.init();
     }
 
@@ -18,8 +20,8 @@ class AnfrageManager {
 
         await this.loadProduct();
         await this.loadBlockedDates();
+        this.initializeDatePickers();
         this.setupEventListeners();
-        this.setMinDate();
     }
 
     async loadProduct() {
@@ -47,6 +49,7 @@ class AnfrageManager {
                     booking.status === 'confirmed'
                 );
                 this.displayBlockedDates();
+                this.updateDatePickersWithBlockedDates();
             }
         } catch (error) {
             console.error('Error loading blocked dates:', error);
@@ -83,36 +86,72 @@ class AnfrageManager {
         }).join('');
     }
 
+    initializeDatePickers() {
+        // Deutsche Lokalisierung
+        flatpickr.localize(flatpickr.l10ns.de);
+        
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        // Startdatum Picker
+        this.startDatePicker = flatpickr("#startDate", {
+            locale: "de",
+            dateFormat: "Y-m-d",
+            minDate: tomorrow,
+            theme: "material_blue",
+            disable: this.getBlockedDatesForPicker(),
+            onChange: (selectedDates, dateStr) => {
+                // Enddatum Minimum auf Startdatum + 1 Tag setzen
+                if (selectedDates.length > 0) {
+                    const minEndDate = new Date(selectedDates[0]);
+                    minEndDate.setDate(minEndDate.getDate() + 1);
+                    this.endDatePicker.set('minDate', minEndDate);
+                }
+                this.validateDateSelection();
+                this.calculatePrice();
+            }
+        });
+        
+        // Enddatum Picker
+        this.endDatePicker = flatpickr("#endDate", {
+            locale: "de",
+            dateFormat: "Y-m-d",
+            minDate: tomorrow,
+            theme: "material_blue",
+            disable: this.getBlockedDatesForPicker(),
+            onChange: () => {
+                this.validateDateSelection();
+                this.calculatePrice();
+            }
+        });
+    }
+
+    getBlockedDatesForPicker() {
+        return this.blockedDates.map(booking => {
+            return {
+                from: booking.startDate,
+                to: booking.endDate
+            };
+        });
+    }
+
+    updateDatePickersWithBlockedDates() {
+        if (this.startDatePicker && this.endDatePicker) {
+            const blockedDates = this.getBlockedDatesForPicker();
+            this.startDatePicker.set('disable', blockedDates);
+            this.endDatePicker.set('disable', blockedDates);
+        }
+    }
+
     setupEventListeners() {
-        const startDateInput = document.getElementById('startDate');
-        const endDateInput = document.getElementById('endDate');
         const form = document.getElementById('anfrageForm');
-
-        startDateInput.addEventListener('change', () => {
-            this.validateDateSelection();
-            this.calculatePrice();
-        });
-
-        endDateInput.addEventListener('change', () => {
-            this.validateDateSelection();
-            this.calculatePrice();
-        });
-
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             this.submitRequest();
         });
     }
 
-    setMinDate() {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const minDate = tomorrow.toISOString().split('T')[0];
-        document.getElementById('startDate').min = minDate;
-        document.getElementById('endDate').min = minDate;
-    }
+
 
     validateDateSelection() {
         const startDate = new Date(document.getElementById('startDate').value);

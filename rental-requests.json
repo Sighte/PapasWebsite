@@ -12,7 +12,39 @@
     "totalPrice": 225,
     "status": "rejected",
     "createdAt": "2025-06-16T12:14:26.866Z",
-    "updatedAt": "2025-06-16T13:13:11.485Z",
+    "updatedAt": "2025-06-16T13:46:05.744Z",
+    "adminNote": null
+  },
+  {
+    "id": "f09543d6-1324-450e-afc7-dd256abaf5ed",
+    "productId": "test-1",
+    "productTitle": "Kleiner Anhänger 750kg",
+    "startDate": "2025-07-08",
+    "endDate": "2025-08-14",
+    "customerName": "Test",
+    "customerEmail": "marvintrapp123@gmail.com",
+    "customerPhone": "01704048023",
+    "message": "asdasd",
+    "totalPrice": 925,
+    "status": "rejected",
+    "createdAt": "2025-06-16T13:41:40.621Z",
+    "updatedAt": "2025-06-16T13:46:09.898Z",
+    "adminNote": "fgf"
+  },
+  {
+    "id": "a113ba4a-6f15-4820-abbc-db574e9f73b6",
+    "productId": "test-2",
+    "productTitle": "Großer Anhänger 1300kg",
+    "startDate": "2025-07-01",
+    "endDate": "2025-09-25",
+    "customerName": "ghfg",
+    "customerEmail": "marvintrapp123@gmail.com",
+    "customerPhone": "01704048023",
+    "message": "fghfh",
+    "totalPrice": 3010,
+    "status": "rejected",
+    "createdAt": "2025-06-16T13:45:45.443Z",
+    "updatedAt": "2025-06-16T13:46:14.045Z",
     "adminNote": null
   }
 ]
