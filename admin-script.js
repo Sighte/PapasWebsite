@@ -5,6 +5,48 @@ class AdminPanel {
         this.init();
     }
 
+    // Helper method to get auth headers
+    getAuthHeaders() {
+        const token = localStorage.getItem('adminToken');
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+    }
+
+    // Helper method for authenticated fetch
+    async authenticatedFetch(url, options = {}) {
+        const token = localStorage.getItem('adminToken');
+        
+        if (!token) {
+            window.location.href = 'admin-login.html';
+            return;
+        }
+
+        const authOptions = {
+            ...options,
+            headers: {
+                ...this.getAuthHeaders(),
+                ...options.headers
+            }
+        };
+
+        try {
+            const response = await fetch(url, authOptions);
+            
+            if (response.status === 401) {
+                localStorage.removeItem('adminToken');
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            
+            return response;
+        } catch (error) {
+            console.error('Fetch error:', error);
+            throw error;
+        }
+    }
+
     init() {
         this.bindEvents();
         this.loadArticles();
@@ -49,6 +91,11 @@ class AdminPanel {
         // Cleanup rentals button
         document.getElementById('cleanupRentalsBtn').addEventListener('click', () => {
             this.cleanupRentals();
+        });
+
+        // Logout button
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            this.logout();
         });
 
         // Status filter
@@ -116,11 +163,8 @@ class AdminPanel {
         }
 
         try {
-            const response = await fetch(`${this.apiUrl}/articles`, {
+            const response = await this.authenticatedFetch(`${this.apiUrl}/articles`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(articleData)
             });
 
@@ -505,8 +549,11 @@ class AdminPanel {
 
     // Rental Requests Management
     async loadRentalRequests() {
+        const requestsList = document.getElementById('requestsList');
+        requestsList.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Lade Anfragen...</div>';
+        
         try {
-            const response = await fetch(`${this.apiUrl}/rental-requests`);
+            const response = await this.authenticatedFetch(`${this.apiUrl}/rental-requests`);
             if (!response.ok) {
                 throw new Error('Failed to load requests');
             }
@@ -515,6 +562,7 @@ class AdminPanel {
             this.displayRequests(this.allRequests);
         } catch (error) {
             console.error('Error loading requests:', error);
+            requestsList.innerHTML = '<div class="loading">Fehler beim Laden der Anfragen</div>';
             this.showMessage('Fehler beim Laden der Anfragen', 'error');
         }
     }
@@ -683,11 +731,8 @@ class AdminPanel {
 
     async updateRequestStatus(requestId, status, adminNote) {
         try {
-            const response = await fetch(`${this.apiUrl}/rental-requests/${requestId}`, {
+            const response = await this.authenticatedFetch(`${this.apiUrl}/rental-requests/${requestId}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ status, adminNote })
             });
 
@@ -747,7 +792,7 @@ class AdminPanel {
         try {
             console.log('Sending DELETE request to:', `${this.apiUrl}/rental-requests/${idToDelete}`);
             
-            const response = await fetch(`${this.apiUrl}/rental-requests/${idToDelete}`, {
+            const response = await this.authenticatedFetch(`${this.apiUrl}/rental-requests/${idToDelete}`, {
                 method: 'DELETE'
             });
 
@@ -792,11 +837,8 @@ class AdminPanel {
             cleanupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Bereinige...';
             cleanupBtn.disabled = true;
 
-            const response = await fetch(`${this.apiUrl}/cleanup-rentals`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            const response = await this.authenticatedFetch(`${this.apiUrl}/cleanup-rentals`, {
+                method: 'POST'
             });
 
             if (!response.ok) {
@@ -844,6 +886,25 @@ class AdminPanel {
             this.loadRentalRequests();
         } else if (sectionName === 'articles') {
             this.loadArticles();
+        }
+    }
+
+    // Logout functionality
+    async logout() {
+        try {
+            const response = await this.authenticatedFetch(`${this.apiUrl}/admin/logout`, {
+                method: 'POST'
+            });
+
+            if (response) {
+                localStorage.removeItem('adminToken');
+                window.location.href = 'admin-login.html';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Force logout even if API call fails
+            localStorage.removeItem('adminToken');
+            window.location.href = 'admin-login.html';
         }
     }
 }

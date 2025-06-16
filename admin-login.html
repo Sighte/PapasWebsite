@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Mietservice Trapp</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 60px 50px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-header {
+            margin-bottom: 40px;
+        }
+
+        .login-header i {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-group {
+            position: relative;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #fcc;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            margin-left: 10px;
+        }
+
+        .back-link {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #764ba2;
+        }
+
+        @media (max-width: 768px) {
+            .login-container {
+                margin: 20px;
+                padding: 40px 30px;
+            }
+            
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .login-header i {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <i class="fas fa-shield-alt"></i>
+            <h1>Admin Login</h1>
+            <p>Mietservice Trapp</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="username">Benutzername</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Passwort</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" id="loginBtn" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Anmelden
+                <span id="loadingSpinner" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </span>
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="index.html">
+                <i class="fas fa-arrow-left"></i> Zurück zur Website
+            </a>
+        </div>
+    </div>
+
+    <script>
+        class AdminLogin {
+            constructor() {
+                this.apiUrl = 'http://localhost:3000/api';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.checkExistingSession();
+            }
+
+            bindEvents() {
+                document.getElementById('loginForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.login();
+                });
+
+                // Enter key handling
+                document.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const loginBtn = document.getElementById('loginBtn');
+                        if (!loginBtn.disabled) {
+                            document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                        }
+                    }
+                });
+            }
+
+            async checkExistingSession() {
+                const token = localStorage.getItem('adminToken');
+                if (token) {
+                    try {
+                        const response = await fetch(`${this.apiUrl}/admin/verify`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+
+                        if (response.ok) {
+                            // Session is still valid, redirect to admin panel
+                            window.location.href = 'admin.html';
+                            return;
+                        }
+                    } catch (error) {
+                        console.log('Session check failed');
+                    }
+                    
+                    // Invalid token, remove it
+                    localStorage.removeItem('adminToken');
+                }
+            }
+
+            async login() {
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                const loginBtn = document.getElementById('loginBtn');
+                const loadingSpinner = document.getElementById('loadingSpinner');
+                const errorMessage = document.getElementById('errorMessage');
+
+                if (!username || !password) {
+                    this.showError('Bitte geben Sie Benutzername und Passwort ein.');
+                    return;
+                }
+
+                // Show loading state
+                loginBtn.disabled = true;
+                loadingSpinner.style.display = 'inline-block';
+                errorMessage.style.display = 'none';
+
+                try {
+                    const response = await fetch(`${this.apiUrl}/admin/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Store the token
+                        localStorage.setItem('adminToken', data.token);
+                        
+                        // Redirect to admin panel
+                        window.location.href = 'admin.html';
+                    } else {
+                        this.showError(data.error || 'Anmeldung fehlgeschlagen');
+                    }
+                } catch (error) {
+                    this.showError('Verbindungsfehler. Bitte versuchen Sie es später erneut.');
+                } finally {
+                    // Reset loading state
+                    loginBtn.disabled = false;
+                    loadingSpinner.style.display = 'none';
+                }
+            }
+
+            showError(message) {
+                const errorMessage = document.getElementById('errorMessage');
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    errorMessage.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Initialize login system
+        document.addEventListener('DOMContentLoaded', () => {
+            new AdminLogin();
+        });
+    </script>
+</body>
+</html>

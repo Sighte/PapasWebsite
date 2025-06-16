@@ -6,6 +6,7 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,17 @@ const ARTICLES_FILE = path.join(__dirname, 'articles.json');
 const RENTAL_REQUESTS_FILE = path.join(__dirname, 'rental-requests.json');
 const CONFIRMED_RENTALS_FILE = path.join(__dirname, 'mietdaten.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+// Admin authentication configuration
+const ADMIN_CONFIG = {
+    username: 'Flexmeister',
+    // Password: Nm902222! - hashed with SHA-256
+    passwordHash: crypto.createHash('sha256').update('Nm902222!').digest('hex'),
+    sessionDuration: 24 * 60 * 60 * 1000 // 24 hours
+};
+
+// Store for admin sessions (in production, use Redis or database)
+const adminSessions = new Map();
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -146,10 +158,98 @@ async function writeConfirmedRentals(rentals) {
     }
 }
 
+// Authentication helper functions
+function generateToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+function hashPassword(password) {
+    return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+function verifyAdmin(req, res, next) {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Keine gültige Authentifizierung' });
+    }
+    
+    const token = authHeader.substring(7);
+    const session = adminSessions.get(token);
+    
+    if (!session || session.expiresAt < Date.now()) {
+        if (session) {
+            adminSessions.delete(token);
+        }
+        return res.status(401).json({ error: 'Session abgelaufen' });
+    }
+    
+    // Extend session
+    session.expiresAt = Date.now() + ADMIN_CONFIG.sessionDuration;
+    req.adminSession = session;
+    next();
+}
+
 // Routes
 
-// Upload image endpoint
-app.post('/api/upload-image', upload.single('image'), (req, res) => {
+// Admin authentication routes
+app.post('/api/admin/login', (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
+        }
+        
+        const hashedPassword = hashPassword(password);
+        
+        if (username !== ADMIN_CONFIG.username || hashedPassword !== ADMIN_CONFIG.passwordHash) {
+            return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
+        }
+        
+        // Generate session token
+        const token = generateToken();
+        const session = {
+            username: username,
+            loginTime: new Date().toISOString(),
+            expiresAt: Date.now() + ADMIN_CONFIG.sessionDuration
+        };
+        
+        adminSessions.set(token, session);
+        
+        res.json({
+            success: true,
+            token: token,
+            expiresIn: ADMIN_CONFIG.sessionDuration
+        });
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Interner Serverfehler' });
+    }
+});
+
+app.get('/api/admin/verify', verifyAdmin, (req, res) => {
+    res.json({
+        success: true,
+        session: {
+            username: req.adminSession.username,
+            loginTime: req.adminSession.loginTime
+        }
+    });
+});
+
+app.post('/api/admin/logout', verifyAdmin, (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader.substring(7);
+    
+    adminSessions.delete(token);
+    
+    res.json({ success: true, message: 'Erfolgreich abgemeldet' });
+});
+
+// Upload image endpoint (protected)
+app.post('/api/upload-image', verifyAdmin, upload.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Keine Datei hochgeladen' });
@@ -210,8 +310,8 @@ app.get('/api/articles/:id', async (req, res) => {
     }
 });
 
-// Create new article
-app.post('/api/articles', async (req, res) => {
+// Create new article (protected)
+app.post('/api/articles', verifyAdmin, async (req, res) => {
     try {
         const { title, category, description, price, imageUrl, features, available } = req.body;
         
@@ -249,8 +349,8 @@ app.post('/api/articles', async (req, res) => {
     }
 });
 
-// Update article
-app.put('/api/articles/:id', async (req, res) => {
+// Update article (protected)
+app.put('/api/articles/:id', verifyAdmin, async (req, res) => {
     try {
         const { title, category, description, price, imageUrl, features, available } = req.body;
         
@@ -291,8 +391,8 @@ app.put('/api/articles/:id', async (req, res) => {
     }
 });
 
-// Delete article
-app.delete('/api/articles/:id', async (req, res) => {
+// Delete article (protected)
+app.delete('/api/articles/:id', verifyAdmin, async (req, res) => {
     try {
         const articles = await readArticles();
         const articleIndex = articles.findIndex(a => a.id === req.params.id);
@@ -427,7 +527,7 @@ app.post('/api/rental-requests', async (req, res) => {
 });
 
 // Get all rental requests (admin only)
-app.get('/api/rental-requests', async (req, res) => {
+app.get('/api/rental-requests', verifyAdmin, async (req, res) => {
     try {
         const requests = await readRentalRequests();
         res.json(requests);
@@ -437,7 +537,7 @@ app.get('/api/rental-requests', async (req, res) => {
 });
 
 // Update rental request status (admin only)
-app.put('/api/rental-requests/:id', async (req, res) => {
+app.put('/api/rental-requests/:id', verifyAdmin, async (req, res) => {
     try {
         const { status, adminNote } = req.body;
         
@@ -523,7 +623,7 @@ app.put('/api/rental-requests/:id', async (req, res) => {
 });
 
 // Delete rental request (admin only)
-app.delete('/api/rental-requests/:id', async (req, res) => {
+app.delete('/api/rental-requests/:id', verifyAdmin, async (req, res) => {
     try {
         console.log('DELETE request received for ID:', req.params.id);
         
@@ -690,7 +790,7 @@ async function cleanupConfirmedRentals() {
 }
 
 // API endpoint to manually clean up confirmed rentals (admin only)
-app.post('/api/cleanup-rentals', async (req, res) => {
+app.post('/api/cleanup-rentals', verifyAdmin, async (req, res) => {
     try {
         const result = await cleanupConfirmedRentals();
         res.json({
@@ -705,7 +805,7 @@ app.post('/api/cleanup-rentals', async (req, res) => {
 });
 
 // API endpoint to force clear all confirmed rentals (admin only)
-app.post('/api/clear-all-rentals', async (req, res) => {
+app.post('/api/clear-all-rentals', verifyAdmin, async (req, res) => {
     try {
         const confirmedRentals = await readConfirmedRentals();
         const originalCount = confirmedRentals.length;

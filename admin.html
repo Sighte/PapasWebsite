@@ -15,6 +15,7 @@
                 <button class="nav-btn active" onclick="showSection('articles')"><i class="fas fa-box"></i> Artikel</button>
                 <button class="nav-btn" onclick="showSection('requests')"><i class="fas fa-calendar-check"></i> Anfragen</button>
                 <a href="index.html" class="nav-link"><i class="fas fa-home"></i> Zur Website</a>
+                <button id="logoutBtn" class="nav-btn logout-btn"><i class="fas fa-sign-out-alt"></i> Abmelden</button>
             </nav>
         </header>
 
@@ -257,6 +258,36 @@
         </div>
     </div>
 
+    <script>
+        // Authentication check - redirect to login if not authenticated
+        (async function checkAuth() {
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                window.location.href = 'admin-login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/admin/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    localStorage.removeItem('adminToken');
+                    window.location.href = 'admin-login.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('adminToken');
+                window.location.href = 'admin-login.html';
+                return;
+            }
+        })();
+    </script>
     <script src="admin-script.js"></script>
 </body>
 </html>

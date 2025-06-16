@@ -5,7 +5,7 @@
     "category": "anhaenger",
     "description": "Perfekt für kleinere Transporte. Zulässiges Gesamtgewicht 750kg.",
     "price": 25,
-    "imageUrl": "https://via.placeholder.com/300x200?text=Anhänger+750kg",
+    "imageUrl": "/uploads/image-1750089353838-885440710.jpg",
     "features": [
       "750kg Zuladung",
       "Plane inklusive",
@@ -13,7 +13,7 @@
     ],
     "available": true,
     "createdAt": "2024-01-15T10:00:00.000Z",
-    "updatedAt": "2024-01-15T10:00:00.000Z"
+    "updatedAt": "2025-06-16T15:55:56.383Z"
   },
   {
     "id": "test-2",

@@ -70,6 +70,15 @@ body {
     background-color: rgba(255,255,255,0.2);
 }
 
+.admin-nav .logout-btn {
+    background-color: rgba(220, 53, 69, 0.8);
+    margin-left: 1rem;
+}
+
+.admin-nav .logout-btn:hover {
+    background-color: rgba(220, 53, 69, 1);
+}
+
 /* Main Content */
 .admin-main {
     padding: 2rem;
