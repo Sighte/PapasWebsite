@@ -10,6 +10,12 @@ class AdminPanel {
         this.loadArticles();
         this.currentRequestId = null;
         this.allRequests = [];
+        this.uploadedImageUrl = null;
+        this.editUploadedImageUrl = null;
+        
+        // Initialize image input toggles
+        this.toggleImageInputs('url', false);
+        this.toggleImageInputs('url', true);
     }
 
     bindEvents() {
@@ -61,11 +67,48 @@ class AdminPanel {
                 this.closeEditModal();
             }
         });
+
+        // Image option radio buttons
+        document.querySelectorAll('input[name="imageOption"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleImageInputs(e.target.value, false);
+            });
+        });
+
+        document.querySelectorAll('input[name="editImageOption"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleImageInputs(e.target.value, true);
+            });
+        });
+
+        // Upload button click events
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            document.getElementById('imageUpload').click();
+        });
+
+        document.getElementById('editUploadBtn').addEventListener('click', () => {
+            document.getElementById('editImageUpload').click();
+        });
+
+        // File input change events
+        document.getElementById('imageUpload').addEventListener('change', (e) => {
+            this.handleFileSelect(e, false);
+        });
+
+        document.getElementById('editImageUpload').addEventListener('change', (e) => {
+            this.handleFileSelect(e, true);
+        });
     }
 
     async addArticle() {
         const formData = new FormData(document.getElementById('articleForm'));
         const articleData = this.formDataToObject(formData);
+        
+        // Check which image option is selected
+        const imageOption = document.querySelector('input[name="imageOption"]:checked').value;
+        if (imageOption === 'upload' && this.uploadedImageUrl) {
+            articleData.imageUrl = this.uploadedImageUrl;
+        }
         
         // Process features
         if (articleData.features) {
@@ -84,6 +127,7 @@ class AdminPanel {
             if (response.ok) {
                 this.showMessage('Artikel erfolgreich hinzugefügt!', 'success');
                 document.getElementById('articleForm').reset();
+                this.resetImageInputs(false);
                 this.loadArticles();
             } else {
                 const error = await response.text();
@@ -220,6 +264,12 @@ class AdminPanel {
         const id = articleData.id;
         delete articleData.id;
 
+        // Check which image option is selected for edit
+        const editImageOption = document.querySelector('input[name="editImageOption"]:checked').value;
+        if (editImageOption === 'upload' && this.editUploadedImageUrl) {
+            articleData.imageUrl = this.editUploadedImageUrl;
+        }
+
         // Process features
         if (articleData.features) {
             articleData.features = articleData.features.split('\n').filter(f => f.trim());
@@ -295,6 +345,146 @@ class AdminPanel {
         }
         
         return object;
+    }
+
+    // Image upload methods
+    toggleImageInputs(selectedOption, isEdit) {
+        const prefix = isEdit ? 'edit' : '';
+        const urlInput = document.getElementById(`${prefix}${prefix ? 'I' : 'i'}mageUrl`);
+        const uploadBtn = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadBtn`);
+        const uploadInput = document.getElementById(`${prefix}${prefix ? 'I' : 'i'}mageUpload`);
+        const uploadPreview = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadPreview`);
+
+        if (selectedOption === 'url') {
+            urlInput.style.display = 'block';
+            uploadBtn.style.display = 'none';
+            uploadInput.style.display = 'none';
+            uploadPreview.style.display = 'none';
+            uploadPreview.innerHTML = '';
+        } else {
+            urlInput.style.display = 'none';
+            uploadBtn.style.display = 'block';
+            uploadInput.style.display = 'none';
+            uploadPreview.style.display = 'none';
+        }
+    }
+
+    async handleFileSelect(event, isEdit) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const prefix = isEdit ? 'edit' : '';
+        const previewDiv = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadPreview`);
+        
+        // Validate file type
+        if (!file.type.match('image/(png|jpeg|jpg)')) {
+            this.showMessage('Nur PNG, JPG und JPEG Dateien sind erlaubt!', 'error');
+            event.target.value = '';
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showMessage('Die Datei ist zu groß! Maximum 5MB erlaubt.', 'error');
+            event.target.value = '';
+            return;
+        }
+
+        try {
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" alt="Vorschau">
+                    <div class="file-info">
+                        <strong>${file.name}</strong><br>
+                        Größe: ${(file.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
+                    <button type="button" class="remove-btn" onclick="adminPanel.removeUploadedFile('${prefix}')">
+                        <i class="fas fa-times"></i> Entfernen
+                    </button>
+                `;
+                previewDiv.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            // Upload file to server
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const uploadBtn = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadBtn`);
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Hochladen...';
+            uploadBtn.disabled = true;
+
+            const response = await fetch(`${this.apiUrl}/upload-image`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Upload fehlgeschlagen');
+            }
+
+            const result = await response.json();
+            
+            // Store the uploaded image URL
+            if (isEdit) {
+                this.editUploadedImageUrl = result.imageUrl;
+            } else {
+                this.uploadedImageUrl = result.imageUrl;
+            }
+
+            this.showMessage('Bild erfolgreich hochgeladen!', 'success');
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            this.showMessage(`Upload fehlgeschlagen: ${error.message}`, 'error');
+            event.target.value = '';
+            previewDiv.style.display = 'none';
+        } finally {
+            const uploadBtn = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadBtn`);
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> PNG/JPG auswählen';
+            uploadBtn.disabled = false;
+        }
+    }
+
+    removeUploadedFile(prefix) {
+        const uploadInput = document.getElementById(`${prefix}${prefix ? 'I' : 'i'}mageUpload`);
+        const previewDiv = document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadPreview`);
+        
+        uploadInput.value = '';
+        previewDiv.innerHTML = '';
+        previewDiv.style.display = 'none';
+        
+        if (prefix === 'edit') {
+            this.editUploadedImageUrl = null;
+        } else {
+            this.uploadedImageUrl = null;
+        }
+    }
+
+    resetImageInputs(isEdit) {
+        const prefix = isEdit ? 'edit' : '';
+        
+        // Reset radio buttons to URL option
+        document.getElementById(`${prefix}${prefix ? 'I' : 'i'}mageUrlOption`).checked = true;
+        
+        // Clear and hide upload elements
+        document.getElementById(`${prefix}${prefix ? 'I' : 'i'}mageUpload`).value = '';
+        document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadPreview`).innerHTML = '';
+        document.getElementById(`${prefix}${prefix ? 'U' : 'u'}ploadPreview`).style.display = 'none';
+        
+        // Show URL input, hide upload elements
+        this.toggleImageInputs('url', isEdit);
+        
+        // Clear stored URLs
+        if (isEdit) {
+            this.editUploadedImageUrl = null;
+        } else {
+            this.uploadedImageUrl = null;
+        }
     }
 
     showMessage(message, type) {

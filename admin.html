@@ -51,8 +51,23 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="imageUrl">Bild-URL</label>
-                        <input type="url" id="imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg">
+                        <label for="imageOption">Bild hinzufügen</label>
+                        <div class="image-input-group">
+                            <div class="image-option">
+                                <input type="radio" id="imageUrlOption" name="imageOption" value="url" checked>
+                                <label for="imageUrlOption">URL eingeben</label>
+                                <input type="url" id="imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg">
+                            </div>
+                            <div class="image-option">
+                                <input type="radio" id="imageUploadOption" name="imageOption" value="upload">
+                                <label for="imageUploadOption">Datei hochladen</label>
+                                <input type="file" id="imageUpload" name="imageUpload" accept=".png,.jpg,.jpeg" style="display:none;">
+                                <button type="button" id="uploadBtn" class="upload-btn" style="display:none;">
+                                    <i class="fas fa-upload"></i> PNG/JPG auswählen
+                                </button>
+                                <div id="uploadPreview" class="upload-preview" style="display:none;"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -166,8 +181,23 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="editImageUrl">Bild-URL</label>
-                    <input type="url" id="editImageUrl" name="imageUrl">
+                    <label for="editImageOption">Bild hinzufügen</label>
+                    <div class="image-input-group">
+                        <div class="image-option">
+                            <input type="radio" id="editImageUrlOption" name="editImageOption" value="url" checked>
+                            <label for="editImageUrlOption">URL eingeben</label>
+                            <input type="url" id="editImageUrl" name="imageUrl">
+                        </div>
+                        <div class="image-option">
+                            <input type="radio" id="editImageUploadOption" name="editImageOption" value="upload">
+                            <label for="editImageUploadOption">Datei hochladen</label>
+                            <input type="file" id="editImageUpload" name="editImageUpload" accept=".png,.jpg,.jpeg" style="display:none;">
+                            <button type="button" id="editUploadBtn" class="upload-btn" style="display:none;">
+                                <i class="fas fa-upload"></i> PNG/JPG auswählen
+                            </button>
+                            <div id="editUploadPreview" class="upload-preview" style="display:none;"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">

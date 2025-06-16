@@ -5,12 +5,44 @@ const path = require('path');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const nodemailer = require('nodemailer');
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ARTICLES_FILE = path.join(__dirname, 'articles.json');
 const RENTAL_REQUESTS_FILE = path.join(__dirname, 'rental-requests.json');
 const CONFIRMED_RENTALS_FILE = path.join(__dirname, 'mietdaten.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, UPLOADS_DIR);
+    },
+    filename: function (req, file, cb) {
+        // Create unique filename with timestamp and random string
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(file.originalname);
+        cb(null, file.fieldname + '-' + uniqueSuffix + extension);
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    // Only accept PNG, JPG, JPEG files
+    if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg' || file.mimetype === 'image/jpg') {
+        cb(null, true);
+    } else {
+        cb(new Error('Nur PNG, JPG und JPEG Dateien sind erlaubt!'), false);
+    }
+};
+
+const upload = multer({ 
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
+});
 
 // Email configuration
 const transporter = nodemailer.createTransport({
@@ -115,6 +147,31 @@ async function writeConfirmedRentals(rentals) {
 }
 
 // Routes
+
+// Upload image endpoint
+app.post('/api/upload-image', upload.single('image'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+        }
+
+        // Return the relative path to the uploaded file
+        const imagePath = `/uploads/${req.file.filename}`;
+        
+        res.status(200).json({
+            success: true,
+            message: 'Bild erfolgreich hochgeladen',
+            imageUrl: imagePath,
+            filename: req.file.filename
+        });
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        res.status(500).json({ error: 'Fehler beim Hochladen des Bildes' });
+    }
+});
+
+// Serve uploaded images
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Get all articles
 app.get('/api/articles', async (req, res) => {
@@ -543,22 +600,60 @@ async function cleanupConfirmedRentals() {
     try {
         console.log('Starting cleanup process...');
         const confirmedRentals = await readConfirmedRentals();
+        const rentalRequests = await readRentalRequests();
         console.log('Loaded confirmed rentals:', confirmedRentals.length);
+        console.log('Loaded rental requests:', rentalRequests.length);
+        
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0); // Set to beginning of today
+        
+        // Create a Set of valid request IDs for quick lookup
+        const validRequestIds = new Set(rentalRequests.map(req => req.id));
         
         // Create a Map to track unique entries and only keep the most recent ones
         const uniqueRentals = new Map();
         
-        // Process each rental to find duplicates
+        // Count different types of removals
+        let expiredCount = 0;
+        let orphanedCount = 0;
+        let duplicateCount = 0;
+        
+        // Process each rental to find duplicates and remove orphaned/expired entries
         confirmedRentals.forEach(rental => {
+            const rentalEndDate = new Date(rental.endDate);
+            rentalEndDate.setHours(0, 0, 0, 0);
+            
+            // Skip rentals that have ended (are in the past)
+            if (rentalEndDate < currentDate) {
+                console.log(`Removing expired rental: ${rental.productTitle} (ended ${rental.endDate})`);
+                expiredCount++;
+                return;
+            }
+            
+            // Skip rentals whose corresponding request no longer exists
+            // Also remove rentals without requestId as they are likely orphaned
+            if (rental.requestId) {
+                if (!validRequestIds.has(rental.requestId)) {
+                    console.log(`Removing orphaned rental with requestId: ${rental.requestId} - ${rental.productTitle}`);
+                    orphanedCount++;
+                    return;
+                }
+            } else {
+                console.log(`Removing rental without requestId: ${rental.productTitle}`);
+                orphanedCount++;
+                return;
+            }
+            
             // Create a unique key based on important fields
             const key = `${rental.productId}-${rental.startDate}-${rental.endDate}-${rental.customerEmail}`;
-            console.log('Processing rental with key:', key);
+            console.log('Processing valid rental with key:', key);
             
             // Check if we already have this rental
             if (uniqueRentals.has(key)) {
                 // Keep the one with the latest createdAt date
                 const existing = uniqueRentals.get(key);
                 console.log('Found duplicate, comparing dates:', rental.createdAt, 'vs', existing.createdAt);
+                duplicateCount++;
                 if (new Date(rental.createdAt) > new Date(existing.createdAt)) {
                     console.log('Keeping newer rental');
                     uniqueRentals.set(key, rental);
@@ -582,7 +677,10 @@ async function cleanupConfirmedRentals() {
         return {
             original: confirmedRentals.length,
             cleaned: finalCleanedRentals.length,
-            removed: confirmedRentals.length - finalCleanedRentals.length
+            removed: confirmedRentals.length - finalCleanedRentals.length,
+            removedExpired: expiredCount,
+            removedOrphaned: orphanedCount,
+            removedDuplicates: duplicateCount
         };
     } catch (error) {
         console.error('Error cleaning up confirmed rentals:', error);
@@ -597,12 +695,34 @@ app.post('/api/cleanup-rentals', async (req, res) => {
         const result = await cleanupConfirmedRentals();
         res.json({
             success: true,
-            message: 'Confirmed rentals cleaned up successfully',
+            message: 'Mietaufträge erfolgreich bereinigt',
             details: result
         });
     } catch (error) {
         console.error('Error during cleanup:', error);
         res.status(500).json({ error: 'Fehler beim Bereinigen der Mietdaten' });
+    }
+});
+
+// API endpoint to force clear all confirmed rentals (admin only)
+app.post('/api/clear-all-rentals', async (req, res) => {
+    try {
+        const confirmedRentals = await readConfirmedRentals();
+        const originalCount = confirmedRentals.length;
+        
+        // Clear all confirmed rentals
+        await writeConfirmedRentals([]);
+        
+        res.json({
+            success: true,
+            message: 'Alle Mietdaten wurden gelöscht',
+            details: {
+                cleared: originalCount
+            }
+        });
+    } catch (error) {
+        console.error('Error clearing all rentals:', error);
+        res.status(500).json({ error: 'Fehler beim Löschen aller Mietdaten' });
     }
 });
 
