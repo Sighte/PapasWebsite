@@ -10,9 +10,10 @@
     "customerPhone": "sf",
     "message": "sdf",
     "totalPrice": 25,
-    "status": "pending",
+    "status": "approved",
     "createdAt": "2025-06-16T16:05:07.073Z",
-    "updatedAt": "2025-06-16T16:05:07.073Z"
+    "updatedAt": "2025-06-16T16:19:45.661Z",
+    "adminNote": null
   },
   {
     "id": "b13c5f3a-6af9-4c43-8347-9a22b2e7a391",
